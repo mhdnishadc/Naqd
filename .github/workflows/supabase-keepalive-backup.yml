@@ -1,0 +1,24 @@
+# Free Supabase projects pause after ~1 week of inactivity, and the free tier has no real backups.
+# This workflow pings the project daily and dumps the database weekly.
+# Repo secrets needed: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_DB_URL (for backups; use the "Session pooler" connection string).
+name: supabase-keepalive-and-backup
+on:
+  schedule:
+    - cron: '17 3 * * *'      # daily keep-alive
+    - cron: '41 2 * * 0'      # weekly backup (Sunday)
+  workflow_dispatch:
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -fsS "${{ secrets.SUPABASE_URL }}/auth/v1/health" -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" >/dev/null
+          echo "pinged"
+  backup:
+    if: github.event.schedule == '41 2 * * 0' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt-get install -y postgresql-client >/dev/null
+      - run: pg_dump "${{ secrets.SUPABASE_DB_URL }}" --schema=public --no-owner --no-privileges -Fc -f naqd-$(date +%F).dump
+      - uses: actions/upload-artifact@v4
+        with: { name: naqd-backup, path: "*.dump", retention-days: 60 }
