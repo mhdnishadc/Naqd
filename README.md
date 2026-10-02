@@ -29,12 +29,13 @@ npm run dev                     # http://localhost:5173
    Never put the `service_role` key in the frontend.
 5. Open the app, create an account, then create your workspace (business name).
 
-## 3. Deploy on Cloudflare Pages
+## 3. Deploy on Cloudflare Workers
 
-- Connect the GitHub repo → Framework preset **Vite** → build `npm run build` → output `dist`.
-- Environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-- `public/_redirects` already handles SPA routing.
-- In Supabase → Authentication → URL Configuration, add your Pages URL as Site URL.
+- Connect the GitHub repo → build `npm run build` → deploy `npx wrangler deploy`.
+- `wrangler.jsonc` serves `dist/` as static assets with SPA routing (`not_found_handling`).
+- **Build** variables (Settings → Build → Variables and secrets, not runtime variables):
+  `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. They are baked in at build time.
+- In Supabase → Authentication → URL Configuration, add your `workers.dev` (or custom) URL as Site URL.
 
 ## 4. Protect the free tier
 
