@@ -16,7 +16,7 @@ export function Login() {
     e.preventDefault(); setBusy(true); setMsg('')
     const { data, error } = mode === 'in'
       ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password })
+      : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } })
     setBusy(false)
     if (error) setMsg(error.message)
     else if (mode === 'up' && !data.session) setMsg(t('checkEmail'))
