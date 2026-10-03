@@ -62,7 +62,9 @@ export const updateParty = async (id: string, patch: Partial<Pick<Party, 'name' 
   if (error) throw error
 }
 
-export const voidEntry = async (id: string, reason: string) => { const { error } = await supabase.rpc('void_ledger_entry', { p_id: id, p_reason: reason }); if (error) throw error }
+export const deleteParty = async (id: string) => { const { error } = await supabase.rpc('delete_party', { p_id: id }); if (error) throw error }
+
+export const voidEntry =async (id: string, reason: string) => { const { error } = await supabase.rpc('void_ledger_entry', { p_id: id, p_reason: reason }); if (error) throw error }
 export const voidCollection = async (id: string, reason: string) => { const { error } = await supabase.rpc('void_collection', { p_id: id, p_reason: reason }); if (error) throw error }
 
 export const receiptUrl = async (path: string) => {

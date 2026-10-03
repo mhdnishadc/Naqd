@@ -88,6 +88,16 @@ do $$ begin
   exception when insufficient_privilege then null; end;
 end $$;
 
+-- delete_party: works for an unused name, refused once a name has entries
+do $$ declare spare uuid; rajhi uuid; begin
+  insert into parties (type, name) values ('client', 'Spare Co') returning id into spare;
+  perform delete_party(spare);
+  assert not exists (select 1 from parties where id = spare), 'delete_party did not delete';
+  select id into rajhi from parties where name = 'Al-Rajhi Office';
+  begin perform delete_party(rajhi); raise exception 'deleted a party with entries!';
+  exception when others then if sqlerrm like 'deleted a party%' then raise; end if; end;
+end $$;
+
 -- tenant isolation: user B sees nothing of A
 reset role;
 set role authenticated;

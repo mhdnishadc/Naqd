@@ -52,7 +52,7 @@ export default function NewEntry() {
   const [amount, setAmount] = useState('')
   const [party, setParty] = useState(sp.get('party') || '')
   const [note, setNote] = useState('')
-  const [vendor, setVendor] = useState('')
+  const [vendor, setVendor] = useState('') // vendor party id
   const [desc, setDesc] = useState('')
   const [pmode, setPmode] = useState<'amount' | 'pct'>('amount')
   const [profit, setProfit] = useState('')
@@ -99,7 +99,8 @@ export default function NewEntry() {
       let args: Record<string, unknown>
       if (isPurchase) {
         fn = 'record_purchase'
-        args = { ...base, p_client: party, p_vendor: vendor || null, p_description: desc.trim(), p_cost: cost, p_profit: profitHalalas, p_note: note || null }
+        const vendorName = parties.data?.find(p => p.id === vendor)?.name ?? null
+        args = { ...base, p_client: party, p_vendor: vendorName, p_description: desc.trim(), p_cost: cost, p_profit: profitHalalas, p_note: note || null }
       } else if (kind === 'collection') {
         fn = 'record_collection'
         args = { ...base, p_client: party, p_amount: cost, p_mode: payMode, p_note: note || null }
@@ -135,7 +136,8 @@ export default function NewEntry() {
         {isPurchase && (
           <>
             <Field label={t('description')}><input value={desc} onChange={e => setDesc(e.target.value)} placeholder="2 × desktop, HP ProDesk" /></Field>
-            <Field label={t('vendor')}><input value={vendor} onChange={e => setVendor(e.target.value)} /></Field>
+            <PartySelect type="vendor" parties={parties.data ?? []} value={vendor} onChange={setVendor}
+                         onAdded={parties.reload} optional label={t('vendor')} />
           </>
         )}
 
