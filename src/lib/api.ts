@@ -71,6 +71,27 @@ export const getLedger = (opts: { from?: string; to?: string; partyId?: string; 
     return ok(await q) as unknown as LedgerRow[]
   })
 
+/** Every ledger row in a date range, newest first, fetched in pages so a busy month is never cut off. */
+export const getLedgerRange = (from: string, to: string) =>
+  cached<LedgerRow[]>(`ledger-range:${from}:${to}`, async () => {
+    const PAGE = 1000, MAX_PAGES = 100   // 100k rows: a safety stop, far beyond any month
+    const all: LedgerRow[] = []
+    for (let i = 0, offset = 0; i < MAX_PAGES; i++) {
+      const page = shareToken()
+        ? await viaShare<LedgerRow[]>('share_ledger', { p_from: from, p_to: to, p_party: null, p_limit: PAGE, p_offset: offset })
+        : ok(await supabase.from('ledger_entries').select('*, party:parties(name)')
+            .gte('entry_date', from).lte('entry_date', to)
+            // id breaks ties so pages never overlap or skip rows
+            .order('entry_date', { ascending: false }).order('created_at', { ascending: false }).order('id', { ascending: false })
+            .range(offset, offset + PAGE - 1)) as unknown as LedgerRow[]
+      // the server may cap rows per request below PAGE: advance by what came back, stop only when empty
+      if (page.length === 0) break
+      all.push(...page)
+      offset += page.length
+    }
+    return all
+  })
+
 export const getStatement = async (client: string, month: string) => shareToken()
   ? viaShare<any>('share_statement', { p_client: client, p_month: month })
   : ok(await supabase.rpc('client_statement', { p_client: client, p_month: month })) as any

@@ -69,6 +69,7 @@ const en = {
   statementFoot: 'Please settle the amount due at your earliest convenience.', noActivity: 'No activity this month.',
   preparedFor: 'Prepared for',
   ledgerReport: 'Cash ledger', cashIn: 'In', cashOut: 'Out', netCash: 'Net cash movement',
+  showMore: 'Show more', showingOf: 'Showing {n} of {total}',
   flowIn: 'Cash in', flowOut: 'Cash out', totalCashIn: 'Total cash in', totalCashOut: 'Total cash out', cashFlow: 'Cash direction',
   transaction: 'Transaction', period: 'Period', generatedOn: 'Generated on',
   // vendor refunds
@@ -162,6 +163,7 @@ const ar: Record<Key, string> = {
   statementFoot: 'نأمل سداد المبلغ المستحق في أقرب وقت.', noActivity: 'لا توجد حركة هذا الشهر.',
   preparedFor: 'أُعد لـ',
   ledgerReport: 'سجل النقد', cashIn: 'وارد', cashOut: 'صادر', netCash: 'صافي حركة النقد',
+  showMore: 'عرض المزيد', showingOf: 'عرض {n} من {total}',
   flowIn: 'نقد وارد', flowOut: 'نقد صادر', totalCashIn: 'إجمالي النقد الوارد', totalCashOut: 'إجمالي النقد الصادر', cashFlow: 'اتجاه النقد',
   transaction: 'المعاملة', period: 'الفترة', generatedOn: 'تاريخ الإصدار',
   refundAction: 'إرجاع للمورد', choosePurchase: 'أي عملية شراء أُرجعت إلى المورد؟',

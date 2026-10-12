@@ -172,6 +172,10 @@ input[type=file] { padding: .5rem; font-size: .9rem; }
 .ledger-print .wide th:nth-child(2) { text-align: start; }
 .ledger-print .wide td:nth-child(2) .sub { display: block; color: var(--ink-2); font-size: .85em; font-weight: 400; }
 .print-only { display: none; }
+.more-rows { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; padding-top: .75rem; font-size: .9rem; }
+@media (max-width: 480px) { .more-rows .btn { flex: 1 1 100%; } }
+/* page numbers on printed / PDF pages (Chromium browsers; others simply omit them) */
+@page { margin: 14mm 12mm 16mm; @bottom-center { content: counter(page) " / " counter(pages); font-size: 9pt; color: #4A645C; } }
 @media print {
   :root { --paper: #fff; } body { background: #fff; }
   .no-print, .tabs, .side, .banner, .toasts { display: none !important; }

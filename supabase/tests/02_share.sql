@@ -42,6 +42,9 @@ begin
   assert jsonb_array_length(led) = current_setting('naqd.nled')::int, 'ledger row count differs';
   assert not (led->0 ? 'raw_transcript') and not (led->0 ? 'client_ref') and not (led->0 ? 'created_by'), 'ledger leaks internal fields';
   assert jsonb_array_length(share_ledger(tok, null, null, null, 2)) = 2, 'limit ignored';
+  -- paging: page 2 continues exactly where page 1 ended
+  assert share_ledger(tok, null, null, null, 2, 2)->0->>'id' = led->2->>'id', 'offset does not continue the list';
+  assert jsonb_array_length(share_ledger(tok, null, null, null, 1000, 1000)) = 0, 'offset past the end should be empty';
   assert jsonb_array_length(share_parties(tok)) > 0, 'parties empty';
   assert jsonb_array_length(share_client_balances(tok)) > 0, 'client balances empty';
   assert jsonb_array_length(share_employee_balances(tok)) > 0, 'employee balances empty';

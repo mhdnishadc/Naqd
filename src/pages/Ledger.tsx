@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { getLedger } from '../lib/api'
+import { useEffect, useMemo, useState } from 'react'
+import { getLedgerRange } from '../lib/api'
 import { discard, retry } from '../lib/outbox'
 import { useAuth } from '../lib/auth'
 import { printAs } from '../lib/print'
@@ -11,6 +11,7 @@ import { LedgerList } from '../components/LedgerList'
 
 const FILTERS = ['all', 'purchase', 'collection', 'vendor_refund','bank_withdrawal', 'topup', 'advance', 'employee_return', 'advance_expense', 'fuel', 'transport', 'expense']
 type Flow = 'all' | 'in' | 'out'
+const SCREEN_PAGE = 100   // rows drawn on screen at a time; keeps long months fast on phones
 
 export default function Ledger() {
   const { t, kind, lang } = useT()
@@ -19,7 +20,10 @@ export default function Ledger() {
   const [k, setK] = useState('all')
   const [q, setQ] = useState('')
   const [flow, setFlow] = useState<Flow>('all')
-  const { data, loading, reload } = useAsync(() => getLedger({ from: monthStart(ym), to: monthEnd(ym), limit: 500 }), [ym])
+  // the whole month is loaded (filters, totals and the PDF need every row); the screen shows it in pages
+  const { data, loading, reload } = useAsync(() => getLedgerRange(monthStart(ym), monthEnd(ym)), [ym])
+  const [shown, setShown] = useState(SCREEN_PAGE)
+  useEffect(() => setShown(SCREEN_PAGE), [ym, k, q, flow])
   const outbox = useOutbox()
   const date = (iso: string) => longDate(iso, lang)
 
@@ -82,7 +86,13 @@ export default function Ledger() {
       )}
 
       <div className="no-print">
-        {rows.length > 0 ? <LedgerList rows={rows} onChanged={reload} /> : !loading && <Empty>{t('noPartiesYet')}</Empty>}
+        {rows.length > 0 ? <LedgerList rows={rows.slice(0, shown)} onChanged={reload} /> : !loading && <Empty>{t('noPartiesYet')}</Empty>}
+        {rows.length > shown && (
+          <div className="more-rows">
+            <span className="muted">{t('showingOf').replace('{n}', String(shown)).replace('{total}', String(rows.length))}</span>
+            <button className="btn ghost" onClick={() => setShown(s => s + SCREEN_PAGE)}>{t('showMore')}</button>
+          </div>
+        )}
       </div>
 
       {printRows.length > 0 && (
