@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { LedgerRow, receiptUrl, voidEntry } from '../lib/api'
 import { useT } from '../lib/i18n'
 import { useToast } from '../lib/hooks'
+import { useAuth } from '../lib/auth'
 import { Amt } from './ui'
 
 export function LedgerList({ rows, onChanged, showParty = true }: { rows: LedgerRow[]; onChanged: () => void; showParty?: boolean }) {
   const { t, kind } = useT()
+  const { readOnly } = useAuth()
   const toast = useToast()
   const [open, setOpen] = useState<string | null>(null)
   const [reason, setReason] = useState('')
@@ -48,10 +50,12 @@ export function LedgerList({ rows, onChanged, showParty = true }: { rows: Ledger
                   {r.meta?.km && <><dt>{t('km')}</dt><dd dir="ltr">{r.meta.km}</dd></>}
                   {r.void_reason && <><dt>{t('voidReason')}</dt><dd>{r.void_reason}</dd></>}
                 </dl>
-                <div className="row-actions">
-                  {r.receipt_path && <button className="btn ghost sm" onClick={() => showReceipt(r.receipt_path!)}>{t('viewReceipt')}</button>}
-                  {!voided && voiding !== r.id && <button className="btn danger sm" onClick={() => setVoiding(r.id)}>{t('void')}</button>}
-                </div>
+                {!readOnly && (
+                  <div className="row-actions">
+                    {r.receipt_path && <button className="btn ghost sm" onClick={() => showReceipt(r.receipt_path!)}>{t('viewReceipt')}</button>}
+                    {!voided && voiding !== r.id && <button className="btn danger sm" onClick={() => setVoiding(r.id)}>{t('void')}</button>}
+                  </div>
+                )}
                 {voiding === r.id && (
                   <div className="inline-add">
                     <input autoFocus placeholder={t('voidReason')} value={reason} onChange={e => setReason(e.target.value)} />

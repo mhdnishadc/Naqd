@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { getAging, getDashboard, getLedger, getParties } from '../lib/api'
 import { useAsync } from '../lib/hooks'
+import { useAuth } from '../lib/auth'
 import { useT } from '../lib/i18n'
 import { monthEnd, monthISO, monthStart } from '../lib/money'
 import { Amt, Empty } from '../components/ui'
@@ -9,6 +10,7 @@ import { LedgerList } from '../components/LedgerList'
 
 export default function Dashboard() {
   const { t } = useT()
+  const { readOnly } = useAuth()
   const [ym, setYm] = useState(monthISO())
   const dash = useAsync(() => getDashboard(monthStart(ym), monthEnd(ym)), [ym])
   const aging = useAsync(getAging, [])
@@ -33,7 +35,7 @@ export default function Dashboard() {
         {d && d.cash_in_hand < 0 && <p className="warn">{t('runningLow')}</p>}
       </section>
 
-      {noParties && (
+      {noParties && !readOnly && (
         <section className="panel start">
           <h2>{t('startHere')}</h2>
           <p>{t('startHint')}</p>
@@ -73,7 +75,7 @@ export default function Dashboard() {
               <tbody>
                 {(aging.data ?? []).slice(0, 6).map(r => (
                   <tr key={r.client_id}>
-                    <th><Link to={`/parties/${r.client_id}`}>{r.name}</Link></th>
+                    <th><Link to={readOnly ? `/statements?client=${r.client_id}` : `/parties/${r.client_id}`}>{r.name}</Link></th>
                     <td><Amt v={r.d0_30} /></td><td><Amt v={r.d31_60} /></td><td><Amt v={r.d61_90} /></td>
                     <td className={r.d90_plus > 0 ? 'late' : ''}><Amt v={r.d90_plus} /></td><td><Amt v={r.total} strong /></td>
                   </tr>

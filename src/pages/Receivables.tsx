@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getAging, getClientBalances, getOpenPurchases } from '../lib/api'
 import { useAsync } from '../lib/hooks'
+import { useAuth } from '../lib/auth'
 import { useT } from '../lib/i18n'
 import { Amt, Empty } from '../components/ui'
 
 export default function Receivables() {
   const { t } = useT()
+  const { readOnly } = useAuth()
   const bal = useAsync(getClientBalances, [])
   const aging = useAsync(getAging, [])
   const open = useAsync(getOpenPurchases, [])
@@ -52,7 +54,7 @@ export default function Receivables() {
                     ))}
                   </ul>
                   <div className="row-actions">
-                    <Link className="btn primary sm" to={`/new/collection?party=${b.party_id}`}>{t('collection')}</Link>
+                    {!readOnly && <Link className="btn primary sm" to={`/new/collection?party=${b.party_id}`}>{t('collection')}</Link>}
                     <Link className="btn ghost sm" to={`/statements?client=${b.party_id}`}>{t('statements')}</Link>
                   </div>
                 </div>

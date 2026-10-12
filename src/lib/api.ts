@@ -2,6 +2,7 @@ import { get, set } from 'idb-keyval'
 import { supabase } from './supabase'
 import { enqueue, isNetworkError, OutboxItem, sendItem } from './outbox'
 import { uuid } from './money'
+import { isShareInvalid, SHARE_INVALID_EVENT, shareToken } from './share'
 
 export type PartyType = 'client' | 'employee' | 'vendor' | 'funder'
 export interface Party { id: string; type: PartyType; name: string; phone: string | null; aliases: string[]; notes: string | null; active: boolean }
@@ -13,12 +14,14 @@ export interface LedgerRow {
 
 /** Run a loader; remember the result; fall back to the last good copy when offline. */
 export async function cached<T>(key: string, loader: () => Promise<T>): Promise<T> {
+  // a shared (read-only) view keeps its own cache, separate from a signed-in workspace on the same device
+  const k = `naqd:cache:${shareToken() ? 'share:' : ''}${key}`
   try {
     const data = await loader()
-    await set(`naqd:cache:${key}`, data).catch(() => {})
+    await set(k, data).catch(() => {})
     return data
   } catch (e) {
-    const old = await get<T>(`naqd:cache:${key}`)
+    const old = await get<T>(k)
     if (old !== undefined && isNetworkError(e)) return old
     throw e
   }
@@ -26,21 +29,40 @@ export async function cached<T>(key: string, loader: () => Promise<T>): Promise<
 
 const ok = <T>(r: { data: T | null; error: any }): T => { if (r.error) throw r.error; return r.data as T }
 
-export const getParties = () => cached<Party[]>('parties', async () =>
-  ok(await supabase.from('parties').select('*').order('name')) as Party[])
+/** Read through a share link (read-only, no login): every share_* function takes the token first. */
+const viaShare = async <T>(fn: string, args: Record<string, unknown> = {}): Promise<T> => {
+  const r = await supabase.rpc(fn, { p_token: shareToken(), ...args })
+  // link reset or turned off while open: tell the app to show the "no longer active" screen
+  if (r.error && isShareInvalid(r.error)) window.dispatchEvent(new Event(SHARE_INVALID_EVENT))
+  return ok(r) as T
+}
 
-export const getDashboard = (from: string, to: string) => cached<Record<string, number>>(`dash:${from}:${to}`, async () =>
-  ok(await supabase.rpc('dashboard_summary', { p_from: from, p_to: to })) as Record<string, number>)
+export const getParties = () => cached<Party[]>('parties', async () => shareToken()
+  ? viaShare<Party[]>('share_parties')
+  : ok(await supabase.from('parties').select('*').order('name')) as Party[])
 
-export const getClientBalances = () => cached<any[]>('clientbal', async () => ok(await supabase.from('v_client_balances').select('*').order('name')))
-export const getEmployeeBalances = () => cached<any[]>('empbal', async () => ok(await supabase.from('v_employee_balances').select('*').order('name')))
+export const getDashboard = (from: string, to: string) => cached<Record<string, number>>(`dash:${from}:${to}`, async () => shareToken()
+  ? viaShare<Record<string, number>>('share_dashboard', { p_from: from, p_to: to })
+  : ok(await supabase.rpc('dashboard_summary', { p_from: from, p_to: to })) as Record<string, number>)
+
+export const getClientBalances = () => cached<any[]>('clientbal', async () => shareToken()
+  ? viaShare<any[]>('share_client_balances')
+  : ok(await supabase.from('v_client_balances').select('*').order('name')))
+export const getEmployeeBalances = () => cached<any[]>('empbal', async () => shareToken()
+  ? viaShare<any[]>('share_employee_balances')
+  : ok(await supabase.from('v_employee_balances').select('*').order('name')))
 export const getFunderTotals = () => cached<any[]>('funders', async () => ok(await supabase.from('v_funder_totals').select('*').order('name')))
-export const getAging = () => cached<any[]>('aging', async () => ok(await supabase.from('v_client_aging').select('*').order('total', { ascending: false })))
-export const getOpenPurchases = () => cached<any[]>('openpurch', async () =>
-  ok(await supabase.from('v_open_purchases').select('*').order('purchase_date')))
+export const getAging = () => cached<any[]>('aging', async () => shareToken()
+  ? viaShare<any[]>('share_aging')
+  : ok(await supabase.from('v_client_aging').select('*').order('total', { ascending: false })))
+export const getOpenPurchases = () => cached<any[]>('openpurch', async () => shareToken()
+  ? viaShare<any[]>('share_open_purchases')
+  : ok(await supabase.from('v_open_purchases').select('*').order('purchase_date')))
 
 export const getLedger = (opts: { from?: string; to?: string; partyId?: string; limit?: number }) =>
   cached<LedgerRow[]>(`ledger:${JSON.stringify(opts)}`, async () => {
+    if (shareToken()) return viaShare<LedgerRow[]>('share_ledger',
+      { p_from: opts.from ?? null, p_to: opts.to ?? null, p_party: opts.partyId ?? null, p_limit: opts.limit ?? 300 })
     let q = supabase.from('ledger_entries').select('*, party:parties(name)')
       .order('entry_date', { ascending: false }).order('created_at', { ascending: false }).limit(opts.limit ?? 300)
     if (opts.from) q = q.gte('entry_date', opts.from)
@@ -49,8 +71,17 @@ export const getLedger = (opts: { from?: string; to?: string; partyId?: string; 
     return ok(await q) as unknown as LedgerRow[]
   })
 
-export const getStatement = async (client: string, month: string) =>
-  ok(await supabase.rpc('client_statement', { p_client: client, p_month: month })) as any
+export const getStatement = async (client: string, month: string) => shareToken()
+  ? viaShare<any>('share_statement', { p_client: client, p_month: month })
+  : ok(await supabase.rpc('client_statement', { p_client: client, p_month: month })) as any
+
+// ---- share link management (owner only; the server enforces it) ----
+export interface ShareLink { token: string; created_at: string; last_viewed_at: string | null }
+export const getShareLink = async () => ok(await supabase.rpc('share_link_get')) as ShareLink | null
+export const resetShareLink = async () => ok(await supabase.rpc('share_link_reset')) as ShareLink
+export const disableShareLink = async () => { const { error } = await supabase.rpc('share_link_disable'); if (error) throw error }
+export const getSharedWorkspace = async (token: string) =>
+  ok(await supabase.rpc('share_workspace', { p_token: token })) as { name: string; currency: string }
 
 export async function addParty(type: PartyType, name: string, phone?: string): Promise<Party> {
   const { data, error } = await supabase.from('parties').insert({ type, name: name.trim(), phone: phone?.trim() || null }).select().single()
@@ -63,6 +94,7 @@ export const updateParty = async (id: string, patch: Partial<Pick<Party, 'name' 
 }
 
 export const deleteParty = async (id: string) => { const { error } = await supabase.rpc('delete_party', { p_id: id }); if (error) throw error }
+export const renameWorkspace = async (name: string) => { const { error } = await supabase.rpc('rename_workspace', { p_name: name }); if (error) throw error }
 
 export const voidEntry =async (id: string, reason: string) => { const { error } = await supabase.rpc('void_ledger_entry', { p_id: id, p_reason: reason }); if (error) throw error }
 export const voidCollection = async (id: string, reason: string) => { const { error } = await supabase.rpc('void_collection', { p_id: id, p_reason: reason }); if (error) throw error }

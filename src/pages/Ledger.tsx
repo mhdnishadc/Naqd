@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react'
 import { getLedger } from '../lib/api'
 import { discard, retry } from '../lib/outbox'
 import { useAuth } from '../lib/auth'
+import { printAs } from '../lib/print'
 import { useAsync, useOutbox } from '../lib/hooks'
 import { useT } from '../lib/i18n'
-import { monthEnd, monthISO, monthStart, todayISO } from '../lib/money'
+import { longDate, monthEnd, monthISO, monthStart, todayISO } from '../lib/money'
 import { Amt, Empty, Segmented } from '../components/ui'
 import { LedgerList } from '../components/LedgerList'
 
@@ -13,16 +14,14 @@ type Flow = 'all' | 'in' | 'out'
 
 export default function Ledger() {
   const { t, kind, lang } = useT()
-  const { tenantName } = useAuth()
+  const { tenantName, readOnly } = useAuth()
   const [ym, setYm] = useState(monthISO())
   const [k, setK] = useState('all')
   const [q, setQ] = useState('')
   const [flow, setFlow] = useState<Flow>('all')
   const { data, loading, reload } = useAsync(() => getLedger({ from: monthStart(ym), to: monthEnd(ym), limit: 500 }), [ym])
   const outbox = useOutbox()
-  // Gregorian calendar and Latin digits in both languages, so dates read the same on paper.
-  const longDate = (iso: string) => new Intl.DateTimeFormat(`${lang === 'ar' ? 'ar' : 'en-GB'}-u-ca-gregory-nu-latn`,
-    { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`))
+  const date = (iso: string) => longDate(iso, lang)
 
   // Cash in / out means real cash only, so "no cash moved" entries drop out of those views.
   const rows = useMemo(() => (data ?? []).filter(r =>
@@ -55,11 +54,11 @@ export default function Ledger() {
 
       {printRows.length > 0 && (
         <div className="actions no-print">
-          <button className="btn primary" onClick={() => window.print()}>{t('printPdf')}</button>
+          <button className="btn primary" onClick={() => printAs(tenantName)}>{t('printPdf')}</button>
         </div>
       )}
 
-      {outbox.items.length > 0 && (
+      {outbox.items.length > 0 && !readOnly && (
         <section className="panel pending no-print">
           <h2>{t('syncQueue')}</h2>
           <ul className="rows">
@@ -94,8 +93,8 @@ export default function Ledger() {
               <p className="doc-title">{t('ledgerReport')}</p>
             </div>
             <dl className="doc-meta">
-              <dt>{t('period')}</dt><dd>{longDate(monthStart(ym))} – {longDate(monthEnd(ym))}</dd>
-              <dt>{t('generatedOn')}</dt><dd>{longDate(todayISO())}</dd>
+              <dt>{t('period')}</dt><dd>{date(monthStart(ym))} – {date(monthEnd(ym))}</dd>
+              <dt>{t('generatedOn')}</dt><dd>{date(todayISO())}</dd>
             </dl>
           </header>
           <div className="scroll-x">

@@ -28,3 +28,12 @@ export const monthEnd = (ym: string) => {
   return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10)
 }
 export const uuid = () => crypto.randomUUID()
+
+/** "1 Oct 2026" — Gregorian calendar and Latin digits in both languages, so dates read the same on paper.
+ *  A plain yyyy-mm-dd is a calendar date (no time-zone shift); a timestamp is shown in local time. */
+export function longDate(value: string, lang: string) {
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value)
+  return new Intl.DateTimeFormat(`${lang === 'ar' ? 'ar' : 'en-GB'}-u-ca-gregory-nu-latn`,
+    { day: 'numeric', month: 'short', year: 'numeric', ...(dateOnly ? { timeZone: 'UTC' } : {}) })
+    .format(new Date(dateOnly ? `${value}T00:00:00Z` : value))
+}

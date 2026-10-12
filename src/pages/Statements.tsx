@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getParties, getStatement } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { printAs } from '../lib/print'
 import { useAsync, useToast } from '../lib/hooks'
 import { useT } from '../lib/i18n'
 import { fmt, monthISO, monthStart, plain } from '../lib/money'
@@ -54,7 +55,7 @@ export default function Statements() {
       {s && (
         <>
           <div className="actions no-print">
-            <button className="btn primary" onClick={() => window.print()}>{t('printPdf')}</button>
+            <button className="btn primary" onClick={() => printAs(tenantName)}>{t('printPdf')}</button>
             <button className="btn ghost" onClick={async () => { await navigator.clipboard.writeText(text()); toast(t('copied')) }}>{t('copyText')}</button>
             <button className="btn ghost" onClick={csv}>{t('downloadCsv')}</button>
           </div>

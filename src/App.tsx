@@ -4,6 +4,7 @@ import { useAuth } from './lib/auth'
 import { useAutoSync, useOnline, useOutbox } from './lib/hooks'
 import { useT } from './lib/i18n'
 import { syncOutbox } from './lib/outbox'
+import { Segmented } from './components/ui'
 import { Login, NotConfigured, WorkspaceSetup } from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import NewEntry, { NewEntryHome } from './pages/NewEntry'
@@ -16,39 +17,84 @@ import Statements from './pages/Statements'
 import Settings from './pages/Settings'
 
 function More() {
-  const { t } = useT()
+  const { t, lang, setLang } = useT()
+  const { readOnly, exitShare } = useAuth()
+  const links = readOnly
+    ? ([['/advances', 'advances'], ['/statements', 'statements']] as const)
+    : ([['/parties', 'parties'], ['/advances', 'advances'], ['/statements', 'statements'], ['/settings', 'settings']] as const)
   return (
     <div className="page narrow">
       <h1>{t('more')}</h1>
       <ul className="rows">
-        {([['/parties', 'parties'], ['/advances', 'advances'], ['/statements', 'statements'], ['/settings', 'settings']] as const).map(([to, k]) => (
+        {links.map(([to, k]) => (
           <li key={to} className="row"><Link className="row-main" to={to}><span className="row-title">{t(k)}</span></Link></li>
         ))}
       </ul>
+      {readOnly && (
+        <>
+          <section className="panel">
+            <h2>{t('language')}</h2>
+            <Segmented value={lang} onChange={setLang} options={[{ v: 'en', label: 'English' }, { v: 'ar', label: 'العربية' }]} />
+          </section>
+          <section className="panel">
+            <h2>{t('readOnlyTitle')}</h2>
+            <p className="muted">{t('readOnlyHint')}</p>
+            <button className="btn ghost" onClick={exitShare}>{t('leaveView')}</button>
+          </section>
+        </>
+      )}
     </div>
+  )
+}
+
+/** Shown when the owner has reset or turned off the link this browser was opened with. */
+function ShareInvalid() {
+  const { t } = useT()
+  const { exitShare } = useAuth()
+  return (
+    <main className="auth">
+      <div className="auth-card">
+        <div className="brand-lg"><span className="mark" aria-hidden>ن</span><h1>{t('appName')}</h1></div>
+        <h2>{t('linkInvalidTitle')}</h2>
+        <p className="lede">{t('linkInvalidHint')}</p>
+        <button className="btn primary" onClick={exitShare}>{t('leaveView')}</button>
+      </div>
+    </main>
   )
 }
 
 function Shell() {
   const { t } = useT()
-  const { tenantName } = useAuth()
+  const { tenantName, readOnly } = useAuth()
   const online = useOnline()
   const { waiting, rejected } = useOutbox()
-  useAutoSync(true)
-  const nav: [string, string, boolean?][] = [['/', t('home'), true], ['/ledger', t('ledger')], ['/new', '+'], ['/receivables', t('receivables')], ['/more', t('more')]]
+  useAutoSync(!readOnly)
+  const nav: [string, string, boolean?][] = readOnly
+    ? [['/', t('home'), true], ['/ledger', t('ledger')], ['/receivables', t('receivables')], ['/more', t('more')]]
+    : [['/', t('home'), true], ['/ledger', t('ledger')], ['/new', '+'], ['/receivables', t('receivables')], ['/more', t('more')]]
+  const side = readOnly
+    ? ([['/', 'home', true], ['/ledger', 'ledger'], ['/receivables', 'receivables'], ['/advances', 'advances'], ['/statements', 'statements'], ['/more', 'more']] as const)
+    : ([['/', 'home', true], ['/ledger', 'ledger'], ['/receivables', 'receivables'], ['/advances', 'advances'], ['/statements', 'statements'], ['/parties', 'parties'], ['/settings', 'settings']] as const)
   return (
     <div className="shell">
       <aside className="side no-print">
         <div className="brand"><span className="mark" aria-hidden>ن</span><div><strong>{t('appName')}</strong><small>{tenantName}</small></div></div>
-        <Link className="btn primary block" to="/new">{t('newEntry')}</Link>
+        {readOnly
+          ? <p className="ro-pill">{t('readOnly')}</p>
+          : <Link className="btn primary block" to="/new">{t('newEntry')}</Link>}
         <nav>
-          {([['/', 'home', true], ['/ledger', 'ledger'], ['/receivables', 'receivables'], ['/advances', 'advances'], ['/statements', 'statements'], ['/parties', 'parties'], ['/settings', 'settings']] as const).map(([to, k, end]) => (
+          {side.map(([to, k, end]) => (
             <NavLink key={to} to={to} end={Boolean(end)}>{t(k)}</NavLink>
           ))}
         </nav>
       </aside>
       <div className="main">
-        {(!online || waiting > 0 || rejected > 0) && (
+        {readOnly && (
+          <div className="banner ro no-print" role="status">
+            <span>{t('readOnlyBanner').replace('{name}', tenantName)}</span>
+          </div>
+        )}
+        {!readOnly && (!online || waiting > 0 || rejected > 0) && (
           <div className="banner no-print" role="status">
             <span>{!online ? t('offline') : `${waiting} ${t('pending')}`}{rejected > 0 && ` · ${rejected} ${t('rejected')}`}</span>
             {online && <button className="link" onClick={() => syncOutbox()}>{t('syncNow')}</button>}
@@ -56,7 +102,7 @@ function Shell() {
         )}
         <Outlet />
       </div>
-      <nav className="tabs no-print" aria-label="Main">
+      <nav className={`tabs no-print ${readOnly ? 'four' : ''}`} aria-label="Main">
         {nav.map(([to, label, end]) => (
           <NavLink key={to} to={to} end={Boolean(end)} className={to === '/new' ? 'fab' : ''} aria-label={to === '/new' ? t('newEntry') : undefined}>{label}</NavLink>
         ))}
@@ -66,10 +112,24 @@ function Shell() {
 }
 
 export default function App() {
-  const { session, loading, profile } = useAuth()
+  const { session, loading, profile, readOnly, shareInvalid } = useAuth()
   const { t } = useT()
   if (!configured) return <NotConfigured />
   if (loading) return <div className="splash">{t('loading')}</div>
+  if (shareInvalid) return <ShareInvalid />
+  if (readOnly) return (
+    <Routes>
+      <Route element={<Shell />}>
+        <Route index element={<Dashboard />} />
+        <Route path="ledger" element={<Ledger />} />
+        <Route path="receivables" element={<Receivables />} />
+        <Route path="advances" element={<Advances />} />
+        <Route path="statements" element={<Statements />} />
+        <Route path="more" element={<More />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  )
   if (!session) return <Login />
   if (!profile) return <WorkspaceSetup />
   return (

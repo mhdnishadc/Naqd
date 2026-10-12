@@ -6,8 +6,10 @@ import App from './App'
 import { AuthProvider } from './lib/auth'
 import { ToastProvider } from './lib/hooks'
 import { I18nProvider } from './lib/i18n'
+import { captureShareToken } from './lib/share'
 import './styles.css'
 
+captureShareToken()
 registerSW({ immediate: true })
 
 createRoot(document.getElementById('root')!).render(

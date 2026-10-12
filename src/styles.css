@@ -34,6 +34,15 @@ a { color: inherit; }
   line-height: 1; padding: 0; margin-top: -22px; box-shadow: 0 0 0 5px var(--paper); }
 .tabs a.fab.active { box-shadow: 0 0 0 5px var(--paper); color: #E8C77A; }
 .banner { display: flex; gap: .75rem; justify-content: space-between; align-items: center; background: var(--brass-soft); color: #5B3F0A; padding: .55rem 1rem; font-size: .85rem; }
+.banner.ro { background: var(--ink); color: #E9EFEC; justify-content: center; text-align: center; }
+.tabs.four { grid-template-columns: repeat(4, 1fr); }
+.share { display: flex; flex-direction: column; gap: .75rem; } .share h2, .share p { margin: 0; } .share .btn { align-self: flex-start; }
+.share-url { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; text-overflow: ellipsis; }
+.share-actions { display: flex; flex-wrap: wrap; gap: .5rem; } .share-actions .btn { align-self: auto; text-decoration: none; }
+.share-meta { display: grid; grid-template-columns: auto 1fr; gap: .15rem .9rem; margin: 0; font-size: .85rem; } .share-meta dt { color: var(--ink-2); } .share-meta dd { margin: 0; }
+@media (max-width: 480px) { .share-actions .btn { flex: 1 1 calc(50% - .25rem); text-align: center; justify-content: center; } }
+.ro-pill { align-self: flex-start; margin: 0; padding: .3rem .75rem; border: 1px solid rgba(232,199,122,.5); border-radius: 99px; color: #E8C77A; font-size: .8rem; font-weight: 600; }
+@media (min-width: 900px) { .banner.ro { display: none; } }
 @media (min-width: 900px) {
   .shell { flex-direction: row; padding-bottom: 0; }
   .tabs { display: none; }
@@ -122,6 +131,7 @@ input[type=file] { padding: .5rem; font-size: .9rem; }
 .selling strong { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
 .inline-add { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; } .inline-add input { flex: 1; min-width: 140px; }
 .inline-add.stack { background: var(--card); border: 1px solid var(--rule); padding: .75rem; border-radius: var(--radius); }
+.ws-name { display: flex; align-items: center; justify-content: space-between; gap: .75rem; } .ws-name p { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; }
 .actions { display: flex; gap: .6rem; flex-wrap: wrap; }
 .btn { font: inherit; font-weight: 600; min-height: 46px; padding: .6rem 1.1rem; border-radius: 8px; border: 1.5px solid var(--ink); background: var(--card); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
