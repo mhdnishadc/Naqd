@@ -19,12 +19,16 @@ export default function Statements() {
   const st = useAsync(async () => (client ? await getStatement(client, monthStart(ym)) : null), [client, ym])
   const s = st.data
   const clients = (parties.data ?? []).filter(p => p.type === 'client')
-  const empty = s && s.purchases.length === 0 && s.collections.length === 0 && s.opening === 0
+  // returns (vendor refunds credited to the client) reduce the bill
+  const returns: any[] = s?.returns ?? []
+  const billedTotal = s ? s.purchases_total - (s.returns_total ?? 0) : 0
+  const empty = s && s.purchases.length === 0 && returns.length === 0 && s.collections.length === 0 && s.opening === 0
 
   const text = () => s ? [
     `*${tenantName}* — ${t('statement')}`, `${s.client} · ${ym}`, '',
     `${t('openingBalance')}: SAR ${fmt(s.opening)}`,
     ...s.purchases.map((p: any) => `${p.date}  ${p.description}  ${fmt(p.amount)}`),
+    ...returns.map((r: any) => `${r.date}  ${t('returnLine')}: ${r.description}  −${fmt(r.amount)}`),
     ...s.collections.map((c: any) => `${c.date}  ${t(c.mode)}  −${fmt(c.amount)}`), '',
     `*${t('closingBalance')}: SAR ${fmt(s.closing)}*`
   ].join('\n') : ''
@@ -34,6 +38,7 @@ export default function Statements() {
     const rows = [['date', 'type', 'description', 'debit', 'credit'],
       ['', 'opening', '', s.opening > 0 ? plain(s.opening) : '', s.opening < 0 ? plain(-s.opening) : ''],
       ...s.purchases.map((p: any) => [p.date, 'purchase', `"${String(p.description).replace(/"/g, '""')}"`, plain(p.amount), '']),
+      ...returns.map((r: any) => [r.date, 'return', `"${String(r.description).replace(/"/g, '""')}"`, '', plain(r.amount)]),
       ...s.collections.map((c: any) => [c.date, 'payment', c.mode, '', plain(c.amount)]),
       ['', 'closing', '', plain(s.closing), '']]
     const blob = new Blob(['\ufeff' + rows.map(r => r.join(',')).join('\n')], { type: 'text/csv;charset=utf-8' })
@@ -73,12 +78,15 @@ export default function Statements() {
                 {s.purchases.map((p: any, i: number) => (
                   <tr key={`p${i}`}><td dir="ltr">{p.date}</td><td>{p.description}</td><td className="num"><Amt v={p.amount} /></td><td></td></tr>
                 ))}
+                {returns.map((r: any, i: number) => (
+                  <tr key={`r${i}`}><td dir="ltr">{r.date}</td><td>{t('returnLine')}: {r.description}</td><td className="num"><Amt v={-r.amount} /></td><td></td></tr>
+                ))}
                 {s.collections.map((c: any, i: number) => (
                   <tr key={`c${i}`}><td dir="ltr">{c.date}</td><td>{t(c.mode)}</td><td></td><td className="num"><Amt v={c.amount} /></td></tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr><td></td><td>{t('total')}</td><td className="num"><Amt v={s.purchases_total} /></td><td className="num"><Amt v={s.collections_total} /></td></tr>
+                <tr><td></td><td>{t('total')}</td><td className="num"><Amt v={billedTotal} /></td><td className="num"><Amt v={s.collections_total} /></td></tr>
                 <tr className="due"><td></td><td>{t('closingBalance')}</td><td colSpan={2} className="num"><span className="cur">SAR</span> <Amt v={s.closing} strong /></td></tr>
               </tfoot>
             </table>

@@ -75,6 +75,52 @@ export const getStatement = async (client: string, month: string) => shareToken(
   ? viaShare<any>('share_statement', { p_client: client, p_month: month })
   : ok(await supabase.rpc('client_statement', { p_client: client, p_month: month })) as any
 
+// ---- vendor refunds (purchase returns) ----
+/** A purchase with what is still refundable: cost left to get back from the vendor, bill left to credit the client. */
+export interface RefundablePurchase {
+  id: string; ledger_id: string | null; client_id: string; client_name: string; vendor_name: string | null
+  description: string; purchase_date: string; cost: number; sell: number; refunded: number; credited: number
+}
+const PURCHASE_COLS = 'id, ledger_id, client_id, vendor_name, description, purchase_date, cost, sell, client:parties(name)'
+
+async function withReturns(rows: any[]): Promise<RefundablePurchase[]> {
+  if (rows.length === 0) return []
+  // returns are rare: for a list, load all live ones at once instead of a long id filter in the URL
+  let q = supabase.from('purchase_returns').select('purchase_id, refund, credit').is('voided_at', null)
+  if (rows.length === 1) q = q.eq('purchase_id', rows[0].id)
+  const ret = ok(await q) as { purchase_id: string; refund: number; credit: number }[]
+  return rows.map(r => {
+    const mine = ret.filter(x => x.purchase_id === r.id)
+    return { ...r, client_name: r.client?.name ?? '', refunded: mine.reduce((a, x) => a + x.refund, 0), credited: mine.reduce((a, x) => a + x.credit, 0) }
+  })
+}
+
+/** Recent live purchases that still have something left to refund (newest first). */
+export const getRefundablePurchases = () => cached<RefundablePurchase[]>('refundable', async () =>
+  (await withReturns(ok(await supabase.from('purchases').select(PURCHASE_COLS).is('voided_at', null)
+    .order('purchase_date', { ascending: false }).order('created_at', { ascending: false }).limit(300)) as any[]))
+    .filter(p => p.cost - p.refunded > 0))
+
+/** One purchase, found by its own id or by the id of its ledger row. */
+export const getRefundablePurchase = (by: { purchaseId?: string; ledgerId?: string }) =>
+  cached<RefundablePurchase | null>(`refundable:${by.purchaseId ?? ''}:${by.ledgerId ?? ''}`, async () => {
+    let q = supabase.from('purchases').select(PURCHASE_COLS).is('voided_at', null)
+    q = by.purchaseId ? q.eq('id', by.purchaseId) : q.eq('ledger_id', by.ledgerId ?? '')
+    const rows = ok(await q.limit(1)) as any[]
+    return (await withReturns(rows))[0] ?? null
+  })
+
+/** The client-bill credit the server applies when none is given: the rest of the bill for a full return, else the same share. */
+export function defaultCredit(p: RefundablePurchase, refund: number) {
+  const leftCost = p.cost - p.refunded, leftSell = p.sell - p.credited
+  if (refund >= leftCost) return leftSell
+  return Math.max(0, Math.min(leftSell, Math.round(refund * p.sell / p.cost)))
+}
+
+/** Returns per purchase for one client (for the client page). */
+export const getClientReturns = (clientId: string) => cached<{ purchase_id: string; credit: number; voided_at: string | null }[]>(
+  `returns:${clientId}`, async () => ok(await supabase.from('purchase_returns').select('purchase_id, credit, voided_at').eq('client_id', clientId)) as any[])
+
 // ---- share link management (owner only; the server enforces it) ----
 export interface ShareLink { token: string; created_at: string; last_viewed_at: string | null }
 export const getShareLink = async () => ok(await supabase.rpc('share_link_get')) as ShareLink | null

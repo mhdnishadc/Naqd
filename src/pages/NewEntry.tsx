@@ -8,7 +8,7 @@ import { fmt, parseAmount, todayISO, uuid } from '../lib/money'
 import { Field, PartySelect, Segmented } from '../components/ui'
 
 const GROUPS: { title: Key; kinds: string[] }[] = [
-  { title: 'gSales', kinds: ['purchase', 'collection'] },
+  { title: 'gSales', kinds: ['purchase', 'collection', 'vendor_refund'] },
   { title: 'gCash', kinds: ['bank_withdrawal', 'topup'] },
   { title: 'gEmployees', kinds: ['advance', 'employee_return', 'advance_expense'] },
   { title: 'gCosts', kinds: ['fuel', 'transport', 'expense'] },
@@ -27,7 +27,7 @@ export function NewEntryHome() {
           <h2>{t(g.title)}</h2>
           <div className="tiles">
             {g.kinds.map(k => (
-              <Link key={k} to={`/new/${k}`} className="tile">
+              <Link key={k} to={k === 'vendor_refund' ? '/refund' : `/new/${k}`} className="tile">
                 <strong>{t(label(k))}</strong>
                 <span>{t(HELP(k))}</span>
               </Link>

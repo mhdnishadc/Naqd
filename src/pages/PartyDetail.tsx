@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { deleteParty, getLedger, getParties, updateParty, voidCollection } from '../lib/api'
+import { deleteParty, getClientReturns, getLedger, getParties, updateParty, voidCollection } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import { useAsync, useToast } from '../lib/hooks'
 import { useT } from '../lib/i18n'
@@ -18,6 +18,9 @@ export default function PartyDetail() {
   const isClient = party?.type === 'client'
   const sales = useAsync(async () => isClient
     ? ((await supabase.from('purchases').select('*').eq('client_id', id).order('purchase_date', { ascending: false })).data ?? []) : [], [id, isClient])
+  const returns = useAsync(async () => isClient ? getClientReturns(id) : [], [id, isClient])
+  const creditOf = (purchaseId: string) => (returns.data ?? [])
+    .filter(r => r.purchase_id === purchaseId && !r.voided_at).reduce((a, r) => a + r.credit, 0)
   const cols = useAsync(async () => isClient
     ? ((await supabase.from('collections').select('*').eq('client_id', id).order('collection_date', { ascending: false })).data ?? []) : [], [id, isClient])
   // vendors are not on the ledger: purchases name them in "Bought from"
@@ -26,7 +29,7 @@ export default function PartyDetail() {
     ? ((await supabase.from('purchases').select('*').eq('vendor_name', party!.name).order('purchase_date', { ascending: false })).data ?? []) : [], [id, isVendor, party?.name])
   const [reason, setReason] = useState('')
   const [voiding, setVoiding] = useState<string | null>(null)
-  const refreshAll = () => { ledger.reload(); sales.reload(); cols.reload() }
+  const refreshAll = () => { ledger.reload(); sales.reload(); cols.reload(); returns.reload() }
 
   async function voidCol(cid: string) {
     try { await voidCollection(cid, reason); setVoiding(null); setReason(''); toast(t('voided')); refreshAll() } catch (e: any) { toast(e.message, 'err') }
@@ -39,7 +42,7 @@ export default function PartyDetail() {
   const hasEntries = (ledger.data?.length ?? 0) > 0 || (sales.data?.length ?? 0) > 0 || (cols.data?.length ?? 0) > 0
   const loaded = !ledger.loading && !sales.loading && !cols.loading
 
-  const billed = (sales.data ?? []).filter((s: any) => !s.voided_at).reduce((a: number, s: any) => a + s.sell, 0)
+  const billed = (sales.data ?? []).filter((s: any) => !s.voided_at).reduce((a: number, s: any) => a + s.sell - creditOf(s.id), 0)
   const paid = (cols.data ?? []).filter((c: any) => !c.voided_at).reduce((a: number, c: any) => a + c.amount, 0)
 
   return (
@@ -95,15 +98,29 @@ export default function PartyDetail() {
         <section className="panel">
           <h2>{t('purchasesInMonth')}</h2>
           <ul className="rows">
-            {(sales.data ?? []).map((s: any) => (
-              <li key={s.id} className={`row ${s.voided_at ? 'voided' : ''}`}>
-                <div className="row-main static">
-                  <span className="row-date" dir="ltr">{s.purchase_date.slice(5)}</span>
-                  <span className="row-body"><span className="row-title">{s.description}</span><span className="row-sub">{s.vendor_name}</span></span>
-                  <span className="row-amt"><Amt v={s.sell} /></span>
-                </div>
-              </li>
-            ))}
+            {(sales.data ?? []).map((s: any) => {
+              const credited = creditOf(s.id)
+              return (
+                <li key={s.id} className={`row ${s.voided_at ? 'voided' : ''}`}>
+                  <div className="row-main static">
+                    <span className="row-date" dir="ltr">{s.purchase_date.slice(5)}</span>
+                    <span className="row-body">
+                      <span className="row-title">{s.description}</span>
+                      <span className="row-sub">
+                        {s.vendor_name}
+                        {credited > 0 && <em className="tag">{t('returnLine')} −<Amt v={credited} /></em>}
+                      </span>
+                    </span>
+                    <span className="row-amt"><Amt v={s.sell - credited} /></span>
+                  </div>
+                  {!s.voided_at && credited < s.sell && (
+                    <div className="row-actions">
+                      <Link className="btn ghost sm" to={`/refund?purchase=${s.id}`}>{t('refundAction')}</Link>
+                    </div>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}

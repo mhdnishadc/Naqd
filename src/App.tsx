@@ -14,6 +14,7 @@ import PartyDetail from './pages/PartyDetail'
 import Receivables from './pages/Receivables'
 import Advances from './pages/Advances'
 import Statements from './pages/Statements'
+import VendorRefund from './pages/VendorRefund'
 import Settings from './pages/Settings'
 
 function More() {
@@ -139,6 +140,7 @@ export default function App() {
         <Route path="ledger" element={<Ledger />} />
         <Route path="new" element={<NewEntryHome />} />
         <Route path="new/:kind" element={<NewEntry />} />
+        <Route path="refund" element={<VendorRefund />} />
         <Route path="receivables" element={<Receivables />} />
         <Route path="advances" element={<Advances />} />
         <Route path="statements" element={<Statements />} />

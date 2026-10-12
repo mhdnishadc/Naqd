@@ -9,7 +9,7 @@ import { longDate, monthEnd, monthISO, monthStart, todayISO } from '../lib/money
 import { Amt, Empty, Segmented } from '../components/ui'
 import { LedgerList } from '../components/LedgerList'
 
-const FILTERS = ['all', 'purchase', 'collection', 'bank_withdrawal', 'topup', 'advance', 'employee_return', 'advance_expense', 'fuel', 'transport', 'expense']
+const FILTERS = ['all', 'purchase', 'collection', 'vendor_refund','bank_withdrawal', 'topup', 'advance', 'employee_return', 'advance_expense', 'fuel', 'transport', 'expense']
 type Flow = 'all' | 'in' | 'out'
 
 export default function Ledger() {

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { LedgerRow, receiptUrl, voidEntry } from '../lib/api'
 import { useT } from '../lib/i18n'
 import { useToast } from '../lib/hooks'
@@ -53,6 +54,7 @@ export function LedgerList({ rows, onChanged, showParty = true }: { rows: Ledger
                 {!readOnly && (
                   <div className="row-actions">
                     {r.receipt_path && <button className="btn ghost sm" onClick={() => showReceipt(r.receipt_path!)}>{t('viewReceipt')}</button>}
+                    {r.kind === 'purchase' && !voided && <Link className="btn ghost sm" to={`/refund?ledger=${r.id}`}>{t('refundAction')}</Link>}
                     {!voided && voiding !== r.id && <button className="btn danger sm" onClick={() => setVoiding(r.id)}>{t('void')}</button>}
                   </div>
                 )}
