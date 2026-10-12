@@ -4,7 +4,7 @@ import { discard, retry } from '../lib/outbox'
 import { useAuth } from '../lib/auth'
 import { useAsync, useOutbox } from '../lib/hooks'
 import { useT } from '../lib/i18n'
-import { monthEnd, monthISO, monthStart } from '../lib/money'
+import { monthEnd, monthISO, monthStart, todayISO } from '../lib/money'
 import { Amt, Empty, Segmented } from '../components/ui'
 import { LedgerList } from '../components/LedgerList'
 
@@ -20,6 +20,9 @@ export default function Ledger() {
   const [flow, setFlow] = useState<Flow>('all')
   const { data, loading, reload } = useAsync(() => getLedger({ from: monthStart(ym), to: monthEnd(ym), limit: 500 }), [ym])
   const outbox = useOutbox()
+  // Gregorian calendar and Latin digits in both languages, so dates read the same on paper.
+  const longDate = (iso: string) => new Intl.DateTimeFormat(`${lang === 'ar' ? 'ar' : 'en-GB'}-u-ca-gregory-nu-latn`,
+    { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`))
 
   // Cash in / out means real cash only, so "no cash moved" entries drop out of those views.
   const rows = useMemo(() => (data ?? []).filter(r =>
@@ -85,14 +88,19 @@ export default function Ledger() {
 
       {printRows.length > 0 && (
         <article className="statement ledger-print print-only" lang={lang}>
-          <header>
-            <h2>{tenantName}</h2>
-            <p>{t('ledgerReport')} · <span dir="ltr">{ym}</span></p>
-            {(flow !== 'all' || k !== 'all' || q) && <p>{t('ledgerFilter')}: <strong>{[flow !== 'all' && t(flow === 'in' ? 'flowIn' : 'flowOut'), k !== 'all' && kind(k), q && `“${q}”`].filter(Boolean).join(' · ')}</strong></p>}
+          <header className="doc-head">
+            <div>
+              <h2>{tenantName}</h2>
+              <p className="doc-title">{t('ledgerReport')}</p>
+            </div>
+            <dl className="doc-meta">
+              <dt>{t('period')}</dt><dd>{longDate(monthStart(ym))} – {longDate(monthEnd(ym))}</dd>
+              <dt>{t('generatedOn')}</dt><dd>{longDate(todayISO())}</dd>
+            </dl>
           </header>
           <div className="scroll-x">
             <table className="grid wide">
-              <thead><tr><th>{t('date')}</th><th>{t('description')}</th>{flow === 'all'
+              <thead><tr><th>{t('date')}</th><th>{t('transaction')}</th>{flow === 'all'
                 ? <><th>{t('cashIn')}</th><th>{t('cashOut')}</th></>
                 : <th>{t('amount')}</th>}</tr></thead>
               <tbody>
@@ -126,7 +134,6 @@ export default function Ledger() {
               )}
             </table>
           </div>
-          <p className="foot">{t('voidedExcluded')}</p>
         </article>
       )}
     </div>

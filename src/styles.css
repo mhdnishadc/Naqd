@@ -154,6 +154,12 @@ input[type=file] { padding: .5rem; font-size: .9rem; }
 .statement .wide { font-size: .95rem; } .statement .wide td:nth-child(2) { white-space: normal; text-align: start; min-width: 8rem; } .statement .num { text-align: end; } .statement .muted-row td { color: var(--ink-2); }
 .statement tfoot td { font-weight: 600; border-top: 1px solid var(--ink); } .statement tfoot .due td { font-size: 1.15rem; border-top: 1.5px solid var(--ink); border-bottom: 3px double var(--ink); }
 .statement .cur { color: var(--brass); font-size: .85rem; } .statement .foot { margin-top: 1.25rem; color: var(--ink-2); font-size: .9rem; }
+.doc-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+.doc-head h2 { font-size: 1.6rem; letter-spacing: -.01em; }
+.doc-head .doc-title { color: var(--ink-2); font-size: .8rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: auto auto; gap: .15rem .9rem; margin: 0; font-size: .85rem; }
+.doc-meta dt { color: var(--ink-2); } .doc-meta dd { margin: 0; text-align: end; font-weight: 500; }
+.ledger-print .wide th:nth-child(2) { text-align: start; }
 .ledger-print .wide td:nth-child(2) .sub { display: block; color: var(--ink-2); font-size: .85em; font-weight: 400; }
 .print-only { display: none; }
 @media print {

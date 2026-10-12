@@ -69,7 +69,7 @@ const en = {
   preparedFor: 'Prepared for',
   ledgerReport: 'Cash ledger', cashIn: 'In', cashOut: 'Out', netCash: 'Net cash movement',
   flowIn: 'Cash in', flowOut: 'Cash out', totalCashIn: 'Total cash in', totalCashOut: 'Total cash out', cashFlow: 'Cash direction',
-  voidedExcluded: 'Voided entries are not included. Entries marked “no cash moved” are not counted in the totals.',
+  transaction: 'Transaction', period: 'Period', generatedOn: 'Generated on',
   // settings
   workspace: 'Workspace', backup: 'Backup', exportBackup: 'Download full backup (JSON)',
   backupHint: 'Free plans have limited backups. Download one regularly.',
@@ -139,7 +139,7 @@ const ar: Record<Key, string> = {
   preparedFor: 'أُعد لـ',
   ledgerReport: 'سجل النقد', cashIn: 'وارد', cashOut: 'صادر', netCash: 'صافي حركة النقد',
   flowIn: 'نقد وارد', flowOut: 'نقد صادر', totalCashIn: 'إجمالي النقد الوارد', totalCashOut: 'إجمالي النقد الصادر', cashFlow: 'اتجاه النقد',
-  voidedExcluded: 'القيود الملغاة غير مدرجة. القيود المعلّمة «بدون حركة نقد» لا تُحتسب في الإجماليات.',
+  transaction: 'المعاملة', period: 'الفترة', generatedOn: 'تاريخ الإصدار',
   workspace: 'مساحة العمل', backup: 'النسخ الاحتياطي', exportBackup: 'تنزيل نسخة احتياطية كاملة (JSON)',
   backupHint: 'الخطط المجانية لا توفر نسخاً احتياطية كافية. نزّل نسخة بانتظام.',
   syncQueue: 'بانتظار الإرسال من هذا الجهاز', rejected: 'رفضها الخادم',
