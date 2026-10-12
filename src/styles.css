@@ -154,12 +154,17 @@ input[type=file] { padding: .5rem; font-size: .9rem; }
 .statement .wide { font-size: .95rem; } .statement .wide td:nth-child(2) { white-space: normal; text-align: start; min-width: 8rem; } .statement .num { text-align: end; } .statement .muted-row td { color: var(--ink-2); }
 .statement tfoot td { font-weight: 600; border-top: 1px solid var(--ink); } .statement tfoot .due td { font-size: 1.15rem; border-top: 1.5px solid var(--ink); border-bottom: 3px double var(--ink); }
 .statement .cur { color: var(--brass); font-size: .85rem; } .statement .foot { margin-top: 1.25rem; color: var(--ink-2); font-size: .9rem; }
+.ledger-print .wide td:nth-child(2) .sub { display: block; color: var(--ink-2); font-size: .85em; font-weight: 400; }
+.print-only { display: none; }
 @media print {
   :root { --paper: #fff; } body { background: #fff; }
   .no-print, .tabs, .side, .banner, .toasts { display: none !important; }
+  .print-only { display: block; }
   .shell { display: block; padding: 0; } .main { max-width: none; } .page { padding: 0; }
   .statement { border: 0; padding: 0; }
-  .scroll-x { overflow: visible; }
+  .scroll-x { overflow: visible; margin: 0; padding: 0; }
+  .statement thead { display: table-header-group; } .statement tr { break-inside: avoid; }
+  .statement .grid th, .statement .grid td { padding: .4rem .5rem; font-size: .85rem; }
 }
 
 /* ---------- phones ---------- */
